@@ -8,6 +8,7 @@ import { usePlaceOrderMutation } from '@/services/productsApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function CartPage() {
   const { items } = useSelector((state: RootState) => state.cart);

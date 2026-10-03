@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { API_URL } from '@/lib/config';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { setCredentials } from '@/slices/authSlice';
@@ -26,7 +27,7 @@ export default function ProfileSettings() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/profile', {
+      const res = await fetch(`${API_URL}/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

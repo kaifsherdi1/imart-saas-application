@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense } from 'react';
 import ProductList from '../components/ProductList';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -18,7 +18,9 @@ export default function CatalogPage() {
         
         <div className="industrial-card p-1 bg-white/5 border-white/10">
            <div className="bg-black p-12 rounded-2xl">
-              <ProductList />
+              <Suspense fallback={null}>
+                <ProductList />
+              </Suspense>
            </div>
         </div>
       </div>

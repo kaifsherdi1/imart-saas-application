@@ -2,32 +2,45 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingCart, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Settings,
   LogOut,
-  Upload,
   CreditCard,
   Shield
 } from 'lucide-react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import { signOut } from '@/lib/auth';
+import RequireRole from '../components/RequireRole';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  return (
+    <RequireRole roles={['owner', 'admin']}>
+      <DashboardShell>{children}</DashboardShell>
+    </RequireRole>
+  );
+}
 
-  const user = useSelector((state: RootState) => state.auth.user);
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, token } = useSelector((state: RootState) => state.auth);
+
+  const handleLogout = async () => {
+    await signOut(dispatch, token);
+    router.replace('/login');
+  };
 
   const navItems = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'My Products', href: '/dashboard/products', icon: Package },
     { name: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
-    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Subscription', href: '/dashboard/billing', icon: CreditCard },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
@@ -74,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="absolute bottom-8 w-64 px-4">
-          <button className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-slate-400 transition-all hover:bg-red-900/20 hover:text-red-400">
+          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-slate-400 transition-all hover:bg-red-900/20 hover:text-red-400">
             <LogOut size={20} />
             <span className="font-medium">Logout</span>
           </button>

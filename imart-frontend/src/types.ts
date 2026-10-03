@@ -22,4 +22,14 @@ export interface User {
   email: string;
   role: 'admin' | 'owner' | 'customer';
   token?: string;
+  store?: Store;
+}
+
+export interface Store {
+  id: string;
+  name: string;
+  slug: string;
+  status?: 'pending' | 'active' | 'suspended' | 'rejected';
+  address?: string;
+  category?: string;
 }

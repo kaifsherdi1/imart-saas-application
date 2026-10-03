@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { API_URL } from '@/lib/config';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/slices/authSlice';
+import { homeForRole } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { motion } from 'framer-motion';
@@ -22,9 +24,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/login', {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ identifier, password }),
       });
 
@@ -43,7 +45,7 @@ export default function LoginPage() {
             popup: 'rounded-[32px] border border-white/5',
           }
         });
-        router.push('/dashboard');
+        router.push(homeForRole(result.data.user.role));
       } else {
         throw new Error(result.message || 'Login failed');
       }

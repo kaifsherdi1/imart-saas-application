@@ -135,8 +135,7 @@ class RealDataSeeder extends Seeder
 
         foreach ($storesData as $storeInfo) {
             // Create the owner
-            $user = User::create([
-                'id' => Str::uuid(),
+            $user = User::forceCreate([
                 'name' => $storeInfo['owner'],
                 'email' => Str::slug($storeInfo['owner']) . '@example.com',
                 'password' => Hash::make('password'),
@@ -145,12 +144,12 @@ class RealDataSeeder extends Seeder
 
             // Create the store
             $store = Store::create([
-                'id' => Str::uuid(),
                 'user_id' => $user->id,
                 'name' => $storeInfo['name'],
                 'slug' => Str::slug($storeInfo['name']),
                 'status' => 'active',
                 'business_type' => $storeInfo['category'],
+                'category' => $storeInfo['category'],
                 'avg_rating' => rand(40, 50) / 10,
                 'total_earnings' => 0,
                 'city' => 'Mumbai',
@@ -160,7 +159,6 @@ class RealDataSeeder extends Seeder
             // Create products
             foreach ($storeInfo['products'] as $productInfo) {
                 Product::create([
-                    'id' => Str::uuid(),
                     'store_id' => $store->id,
                     'name' => $productInfo['name'],
                     'slug' => Str::slug($productInfo['name']) . '-' . rand(100, 999),

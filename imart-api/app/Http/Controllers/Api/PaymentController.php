@@ -39,7 +39,7 @@ class PaymentController extends Controller
                             'name' => "iMart {$plan->name} Subscription",
                             'description' => "Activation for store: {$store->name}",
                         ],
-                        'unit_amount' => $plan->price * 100, // Stripe expects amount in paise
+                        'unit_amount' => (int) round($plan->price * 100), // Stripe expects amount in paise
                     ],
                     'quantity' => 1,
                 ]],
@@ -62,7 +62,8 @@ class PaymentController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            report($e);
+            return response()->json(['status' => 'error', 'message' => 'Unable to start checkout. Please try again.'], 502);
         }
     }
 

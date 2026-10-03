@@ -48,12 +48,25 @@ class OrderController extends Controller
         ]);
     }
 
+    /** GET /api/v1/store/orders — Orders received by the owner's store */
+    public function storeOrders(Request $request): JsonResponse
+    {
+        $orders = $this->orderService->getStoreOrders($request->user()->store->id);
+
+        return response()->json([
+            'status'  => 'success',
+            'code'    => 200,
+            'message' => 'Orders fetched successfully.',
+            'data'    => $orders,
+        ]);
+    }
+
     /** PATCH /api/v1/orders/{orderId}/status — Owner updates order status */
     public function updateStatus(Request $request, string $orderId): JsonResponse
     {
         $request->validate(['status' => 'required|string|in:processing,shipped,delivered,cancelled']);
 
-        $order = $this->orderService->updateOrderStatus($orderId, $request->status);
+        $order = $this->orderService->updateOrderStatus($request->user()->store->id, $orderId, $request->status);
 
         return response()->json([
             'status'  => 'success',

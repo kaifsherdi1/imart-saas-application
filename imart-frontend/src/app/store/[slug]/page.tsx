@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
+import { API_URL } from '@/lib/config';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query'; // Assuming we might use fetch if not in RTK yet
 import { motion } from 'framer-motion';
 import { Store, Star, MapPin, Tag, ShoppingBag } from 'lucide-react';
 import ProductCard from '@/app/components/ProductCard';
 
 // Using a custom fetch since this is a public route not yet in RTK Query
 async function fetchStore(slug: string) {
-  const res = await fetch(`http://localhost:8000/api/v1/public/stores/${slug}`);
+  const res = await fetch(`${API_URL}/public/stores/${slug}`);
   if (!res.ok) throw new Error('Store not found');
   return res.json();
 }

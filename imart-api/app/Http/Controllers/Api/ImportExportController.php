@@ -17,20 +17,14 @@ class ImportExportController extends Controller
      */
     public function downloadTemplate(): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        // Build a simple template file with headers
-        $headers  = [['name', 'price', 'stock', 'category', 'description']];
-        $filename = storage_path('app/templates/product_import_template.xlsx');
-
-        Excel::store(
-            new class($headers) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
-                public function __construct(private array $data) {}
+        // Stream a blank sheet with the expected headers straight to the client
+        return Excel::download(
+            new class implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
                 public function array(): array { return []; }
-                public function headings(): array { return $this->data[0]; }
+                public function headings(): array { return ['name', 'price', 'stock', 'category', 'description']; }
             },
-            'templates/product_import_template.xlsx'
+            'imart_product_template.xlsx'
         );
-
-        return response()->download(storage_path('app/templates/product_import_template.xlsx'), 'imart_product_template.xlsx');
     }
 
     /**
@@ -46,11 +40,11 @@ class ImportExportController extends Controller
 
         $storeId = $request->user()->store->id;
 
-        // Store the file temporarily in storage/imports/{store_id}/
-        $path = $request->file('file')->store("imports/{$storeId}");
+        // Store the file on the private disk until the queued import processes it
+        $path = $request->file('file')->store("imports/{$storeId}", 'local');
 
         // Queue the import job — owner gets email/notification when complete
-        Excel::queueImport(new ProductImport($storeId), $path);
+        Excel::queueImport(new ProductImport($storeId), $path, 'local');
 
         return response()->json([
             'status'  => 'processing',

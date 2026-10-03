@@ -45,7 +45,6 @@ class ProductImport implements ToModel, WithHeadingRow, WithChunkReading, WithVa
             Product::firstOrCreate(
                 ['store_id' => $this->storeId, 'name' => $row['name']],
                 [
-                    'id'          => Str::uuid(),
                     'description' => $row['description'] ?? '',
                     'price'       => $row['price'],
                     'stock'       => $row['stock'],
@@ -73,7 +72,8 @@ class ProductImport implements ToModel, WithHeadingRow, WithChunkReading, WithVa
             'name'     => 'required|string|max:255',
             'price'    => 'required|numeric|min:0.01',
             'stock'    => 'required|integer|min:0',
-            'category' => 'required|string|in:electronics,fashion,home,food,sports,other',
+            'category' => 'required|string|max:255',
+            'description' => 'nullable|string|max:5000',
         ];
     }
 }

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { API_URL } from '@/lib/config';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/slices/authSlice';
+import { homeForRole } from '@/lib/auth';
 import Swal from 'sweetalert2';
 
 export default function AuthRedirectHandler() {
@@ -19,7 +21,7 @@ export default function AuthRedirectHandler() {
     if (token) {
       // In a real app, we would now fetch /api/v1/user to get full details
       // But for the redirect flow, we'll store the token and fetch user info
-      fetch('http://localhost:8000/api/v1/profile', {
+      fetch(`${API_URL}/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -35,7 +37,7 @@ export default function AuthRedirectHandler() {
             timer: 2000,
             showConfirmButton: false
           });
-          router.replace(data.data.role === 'customer' ? '/account' : '/dashboard');
+          router.replace(homeForRole(data.data.role));
         }
       })
       .catch(() => {

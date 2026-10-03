@@ -29,7 +29,7 @@ class SalesReportExport implements FromQuery, WithHeadings, WithMapping, WithSty
 
     public function query(): Builder
     {
-        return Order::with(['items.product', 'user'])
+        return Order::with(['items.product' => fn($q) => $q->withTrashed(), 'user'])
             ->where('store_id', $this->storeId)
             ->when($this->startDate, fn($q) => $q->whereDate('created_at', '>=', $this->startDate))
             ->when($this->endDate,   fn($q) => $q->whereDate('created_at', '<=', $this->endDate));
@@ -50,8 +50,8 @@ class SalesReportExport implements FromQuery, WithHeadings, WithMapping, WithSty
         foreach ($order->items as $item) {
             $rows[] = [
                 $order->id,
-                $order->user->name,
-                $item->product->name,
+                $order->user?->name ?? $order->customer_name ?? 'Guest',
+                $item->product?->name ?? 'Deleted product',
                 $item->quantity,
                 number_format($item->price_at_purchase, 2),
                 number_format($item->price_at_purchase * $item->quantity, 2),

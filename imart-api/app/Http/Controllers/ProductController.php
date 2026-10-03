@@ -21,7 +21,23 @@ class ProductController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $products = $this->productService->getProducts($request->all());
+        $request->validate([
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $products = $this->productService->getProducts(
+            $request->only(['search', 'price_min', 'price_max', 'category', 'store_id', 'sort']),
+            (int) $request->input('per_page', 15)
+        );
+        return ProductResource::collection($products);
+    }
+
+    /**
+     * List the authenticated owner's own products.
+     */
+    public function mine(Request $request): AnonymousResourceCollection
+    {
+        $products = $this->productService->getStoreProducts($request->user()->store->id);
         return ProductResource::collection($products);
     }
 
@@ -63,7 +79,7 @@ class ProductController extends Controller
      */
     public function update(ProductUpdateRequest $request, string $id): JsonResponse
     {
-        $product = $this->productService->updateProduct($id, $request->validated());
+        $product = $this->productService->updateProduct($request->user()->store->id, $id, $request->validated());
 
         return response()->json([
             'status' => 'success',
@@ -76,9 +92,9 @@ class ProductController extends Controller
     /**
      * Remove the specified product.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->productService->deleteProduct($id);
+        $this->productService->deleteProduct($request->user()->store->id, $id);
 
         return response()->json([
             'status' => 'success',
@@ -90,9 +106,9 @@ class ProductController extends Controller
     /**
      * Restore the specified product.
      */
-    public function restore(string $id): JsonResponse
+    public function restore(Request $request, string $id): JsonResponse
     {
-        $this->productService->restoreProduct($id);
+        $this->productService->restoreProduct($request->user()->store->id, $id);
 
         return response()->json([
             'status' => 'success',
@@ -106,8 +122,8 @@ class ProductController extends Controller
      */
     public function bulkDestroy(Request $request): JsonResponse
     {
-        $request->validate(['ids' => 'required|array']);
-        $count = $this->productService->bulkDeleteProducts($request->ids);
+        $request->validate(['ids' => 'required|array|max:500', 'ids.*' => 'uuid']);
+        $count = $this->productService->bulkDeleteProducts($request->user()->store->id, $request->ids);
 
         return response()->json([
             'status' => 'success',
@@ -121,8 +137,8 @@ class ProductController extends Controller
      */
     public function bulkRestore(Request $request): JsonResponse
     {
-        $request->validate(['ids' => 'required|array']);
-        $count = $this->productService->bulkRestoreProducts($request->ids);
+        $request->validate(['ids' => 'required|array|max:500', 'ids.*' => 'uuid']);
+        $count = $this->productService->bulkRestoreProducts($request->user()->store->id, $request->ids);
 
         return response()->json([
             'status' => 'success',

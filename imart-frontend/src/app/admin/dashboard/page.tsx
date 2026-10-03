@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { API_URL } from '@/lib/config';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { 
@@ -27,8 +28,8 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       const [statsRes, storesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/v1/admin/stores/pending', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/admin/stores/pending`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const statsData = await statsRes.json();
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/admin/stores/${id}/approve`, {
+        const res = await fetch(`${API_URL}/admin/stores/${id}/approve`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -137,8 +138,8 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-slate-700 to-slate-900 border border-white/10" />
                       <div>
-                        <p className="font-bold text-white">{store.owner?.name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">{store.owner?.email}</p>
+                        <p className="font-bold text-white">{store.user?.name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500">{store.user?.email}</p>
                       </div>
                     </div>
                   </td>

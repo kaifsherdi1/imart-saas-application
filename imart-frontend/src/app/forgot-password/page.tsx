@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,7 +36,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/forgot-password', {
+      const res = await fetch(`${API_URL}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier }),
@@ -45,7 +46,7 @@ export default function ForgotPasswordPage() {
         Swal.fire({
           icon: 'success',
           title: 'OTP Sent',
-          text: `Your OTP is: ${data.otp} (Simulated for testing)`,
+          text: data.message,
           background: '#111217',
           color: '#fff',
           confirmButtonColor: '#3B82F6',
@@ -66,7 +67,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/verify-otp', {
+      const res = await fetch(`${API_URL}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, otp }),
@@ -93,7 +94,7 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/reset-password', {
+      const res = await fetch(`${API_URL}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, otp, password, password_confirmation: passwordConfirmation }),
@@ -145,7 +146,7 @@ export default function ForgotPasswordPage() {
                   <Mail size={28} />
                 </div>
                 <h1 className="text-3xl font-black tracking-tight text-white">Forgot Password</h1>
-                <p className="text-slate-500 font-medium">Enter your email or phone number to receive a 4-digit OTP.</p>
+                <p className="text-slate-500 font-medium">Enter your email or phone number to receive a 6-digit OTP by email.</p>
               </div>
 
               <form onSubmit={handleRequestOtp} className="space-y-6">
@@ -178,27 +179,27 @@ export default function ForgotPasswordPage() {
                   <KeyRound size={28} />
                 </div>
                 <h1 className="text-3xl font-black tracking-tight text-white">Verify OTP</h1>
-                <p className="text-slate-500 font-medium">Enter the 4-digit code sent to your device.</p>
+                <p className="text-slate-500 font-medium">Enter the 6-digit code sent to your registered email.</p>
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">4-Digit OTP</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">6-Digit OTP</label>
                   <div className="relative group">
                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-amber-500 transition-colors" size={18} />
                     <input
                       type="text"
                       required
-                      maxLength={4}
+                      maxLength={6}
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       className="w-full rounded-2xl border border-white/5 bg-white/5 py-4 pl-12 pr-4 text-center text-2xl tracking-[0.5em] text-white focus:border-amber-500/50 focus:outline-none transition-all"
-                      placeholder="••••"
+                      placeholder="••••••"
                     />
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading || otp.length !== 4} className="w-full rounded-2xl bg-amber-500 py-5 text-lg font-black text-white shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50">
+                <button type="submit" disabled={loading || otp.length !== 6} className="w-full rounded-2xl bg-amber-500 py-5 text-lg font-black text-white shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50">
                   {loading ? 'Verifying...' : 'Verify OTP'}
                 </button>
               </form>

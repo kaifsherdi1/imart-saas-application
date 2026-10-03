@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Hero from './components/home/Hero';
 import Categories from './components/home/Categories';
 import Stores from './components/home/Stores';
@@ -28,7 +28,9 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="container mx-auto px-6">
-          <ProductList hideHeader limit={8} />
+          <Suspense fallback={null}>
+            <ProductList hideHeader limit={8} />
+          </Suspense>
         </div>
       </section>
 

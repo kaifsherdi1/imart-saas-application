@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
-import { logout } from '@/slices/authSlice';
+import { RootState, AppDispatch } from '@/store';
+import { signOut, homeForRole } from '@/lib/auth';
 import {
   Search,
   ShoppingBag,
@@ -33,9 +33,9 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
 
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, token } = useSelector((state: RootState) => state.auth);
   const cartItemsCount = useSelector((state: RootState) => state.cart.items.reduce((acc, item) => acc + item.quantity, 0));
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,8 +52,8 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await signOut(dispatch, token);
     window.location.href = '/login';
   };
 
@@ -126,7 +126,7 @@ export default function Header() {
             {user ? (
               <div className="flex items-center gap-4">
                 <Link
-                  href={user.role === 'customer' ? '/account' : '/dashboard'}
+                  href={homeForRole(user.role)}
                   className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1 pl-1 pr-3 transition-all hover:bg-white/10"
                 >
                   <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center text-[10px] font-black text-white">

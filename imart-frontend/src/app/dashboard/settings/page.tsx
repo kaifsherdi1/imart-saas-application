@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setUser } from '@/slices/authSlice';
 import { RootState } from '@/store';
 import { useUpdateStoreMutation } from '@/services/productsApi';
 import { motion } from 'framer-motion';
@@ -9,20 +10,23 @@ import { Save, Store, Globe, MapPin, Tag } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function StoreSettingsPage() {
-  const store = useSelector((state: RootState) => state.auth.user?.store);
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const store = user?.store;
   const [updateStore, { isLoading }] = useUpdateStoreMutation();
 
   const [formData, setFormData] = useState({
     name: store?.name || '',
     slug: store?.slug || '',
     address: store?.address || '',
-    category: store?.business_category || '',
+    category: store?.category || '',
   });
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateStore(formData).unwrap();
+      const res = await updateStore(formData).unwrap();
+      if (user) dispatch(setUser({ ...user, store: res.data }));
       Swal.fire({
         icon: 'success',
         title: 'Settings Saved',

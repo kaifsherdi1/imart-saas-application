@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "./providers";
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased dark">
       <body className={`${inter.variable} font-sans min-h-full flex flex-col bg-background text-foreground`}>
         <ReduxProvider>
-          <AuthRedirectHandler />
+          <Suspense fallback={null}>
+            <AuthRedirectHandler />
+          </Suspense>
           <SmoothScroll>
             <Header />
             <main className="flex-1">

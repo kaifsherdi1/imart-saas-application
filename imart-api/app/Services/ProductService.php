@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Repositories\ProductRepositoryInterface;
 use App\Exceptions\DuplicateProductException;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 
@@ -20,6 +21,11 @@ class ProductService
         return $this->productRepository->getPaginatedProducts($filters, $perPage);
     }
 
+    public function getStoreProducts(string $storeId, int $perPage = 50): LengthAwarePaginator
+    {
+        return $this->productRepository->getStoreProducts($storeId, $perPage);
+    }
+
     public function getProductById(string $id): Product
     {
         return $this->productRepository->findById($id);
@@ -30,49 +36,58 @@ class ProductService
         $this->checkDuplicate($data['name'], $data['store_id']);
 
         if (isset($data['image'])) {
-            $data['image_url'] = Cloudinary::upload($data['image']->getRealPath())->getSecurePath();
+            $data['image_url'] = $this->uploadImage($data['image']);
         }
+        unset($data['image']);
 
-        $data['slug'] = Str::slug($data['name']) . '-' . Str::random(5);
+        $data['slug'] = Str::slug($data['name']) . '-' . Str::lower(Str::random(5));
 
         return $this->productRepository->create($data);
     }
 
-    public function updateProduct(string $id, array $data): Product
+    public function updateProduct(string $storeId, string $id, array $data): Product
     {
-        $product = $this->productRepository->findById($id);
+        $product = $this->productRepository->findForStore($id, $storeId);
 
         if (isset($data['name']) && $data['name'] !== $product->name) {
             $this->checkDuplicate($data['name'], $product->store_id);
-            $data['slug'] = Str::slug($data['name']) . '-' . Str::random(5);
+            $data['slug'] = Str::slug($data['name']) . '-' . Str::lower(Str::random(5));
         }
 
         if (isset($data['image'])) {
-            $data['image_url'] = Cloudinary::upload($data['image']->getRealPath())->getSecurePath();
+            $data['image_url'] = $this->uploadImage($data['image']);
         }
+        unset($data['image']);
 
         return $this->productRepository->update($product, $data);
     }
 
-    public function deleteProduct(string $id): bool
+    public function deleteProduct(string $storeId, string $id): bool
     {
-        $product = $this->productRepository->findById($id);
+        $product = $this->productRepository->findForStore($id, $storeId);
         return $this->productRepository->softDelete($product);
     }
 
-    public function restoreProduct(string $id): bool
+    public function restoreProduct(string $storeId, string $id): bool
     {
-        return $this->productRepository->restore($id);
+        return $this->productRepository->restore($id, $storeId);
     }
 
-    public function bulkDeleteProducts(array $ids): int
+    public function bulkDeleteProducts(string $storeId, array $ids): int
     {
-        return $this->productRepository->bulkSoftDelete($ids);
+        return $this->productRepository->bulkSoftDelete($ids, $storeId);
     }
 
-    public function bulkRestoreProducts(array $ids): int
+    public function bulkRestoreProducts(string $storeId, array $ids): int
     {
-        return $this->productRepository->bulkRestore($ids);
+        return $this->productRepository->bulkRestore($ids, $storeId);
+    }
+
+    protected function uploadImage(UploadedFile $image): string
+    {
+        return Cloudinary::uploadApi()->upload($image->getRealPath(), [
+            'folder' => 'imart/products',
+        ])['secure_url'];
     }
 
     protected function checkDuplicate(string $name, string $storeId): void

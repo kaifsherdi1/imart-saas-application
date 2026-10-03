@@ -1,11 +1,9 @@
 <?php
 
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind a load balancer / PaaS router: trust forwarded headers so
+        // rate limiting and URLs use the real client IP and scheme.
+        $middleware->trustProxies(at: '*');
+
+        // Apply the "api" rate limiter (defined in AppServiceProvider).
+        $middleware->throttleApi();
+
         // Register custom middleware aliases
         $middleware->alias([
             'role.admin'     => \App\Http\Middleware\EnsureIsAdmin::class,
@@ -23,5 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // The API is consumed by the SPA only: always answer with JSON.
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson()
+        );
     })->create();

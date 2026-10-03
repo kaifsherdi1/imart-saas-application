@@ -23,7 +23,7 @@ class RegisterOwnerRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'mobile' => ['required', 'string', 'max:20'],
+            'mobile' => ['required', 'string', 'max:20', 'unique:users,mobile'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             
             'shop_name' => ['required', 'string', 'max:255'],
@@ -37,10 +37,10 @@ class RegisterOwnerRequest extends FormRequest
             'business_type' => ['required', 'string', 'max:255'],
             'license_type' => ['required', 'string', 'max:255'],
             
-            'business_proof' => ['nullable', 'file', 'max:10240'],
+            'business_proof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'shop_front_photo' => ['nullable', 'file', 'image', 'max:10240'],
             'shop_interior_photo' => ['nullable', 'file', 'image', 'max:10240'],
-            'owner_id_proof' => ['nullable', 'file', 'max:10240'],
+            'owner_id_proof' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             
             'consent' => ['accepted']
         ];

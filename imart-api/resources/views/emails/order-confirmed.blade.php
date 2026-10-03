@@ -6,7 +6,7 @@
     
     <div style="margin: 30px 0; padding: 20px; background: #f1f5f9; border-radius: 12px;">
         <p style="margin: 0; color: #64748b; font-size: 14px;">Order Total</p>
-        <p class="price">₹{{ number_numeric($total) }}</p>
+        <p class="price">₹{{ number_format($total, 2) }}</p>
     </div>
 
     <p>You can track your order status in your account dashboard.</p>

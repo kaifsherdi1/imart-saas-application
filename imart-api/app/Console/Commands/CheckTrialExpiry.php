@@ -25,18 +25,18 @@ class CheckTrialExpiry extends Command
      */
     public function handle(): void
     {
+        // Active stores whose trial is over and who have no paid plan still running.
         $expiredStores = Store::where('status', 'active')
+            ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '<', now())
-            ->whereNull('subscribed_until') // Assume they aren't on a paid plan
+            ->whereDoesntHave('subscriptions', fn($q) => $q->where('status', 'active')->where('ends_at', '>', now()))
             ->get();
 
         foreach ($expiredStores as $store) {
             $store->update(['status' => 'suspended']);
-            
+
             // Log the action for audit trails
             Log::info("Store [{$store->name}] was suspended due to trial expiry.");
-            
-            // Optionally: Dispatch notification to owner
         }
 
         $this->info(count($expiredStores) . " stores have been suspended.");

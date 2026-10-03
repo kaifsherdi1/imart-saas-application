@@ -25,16 +25,20 @@ class StripeWebhookController extends Controller
 
         // Verify the Stripe signature to ensure the request is authentic.
         // Returning 400 tells Stripe to retry the webhook delivery.
+        if (!$secret || !$sigHeader) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid signature.'], 400);
+        }
+
         try {
             $event = Webhook::constructEvent($payload, $sigHeader, $secret);
-        } catch (SignatureVerificationException $e) {
+        } catch (SignatureVerificationException | \UnexpectedValueException $e) {
             return response()->json(['status' => 'error', 'message' => 'Invalid signature.'], 400);
         }
 
         $payloadArray = json_decode($payload, true);
 
         match ($event->type) {
-            'invoice.payment_succeeded'       => $this->webhookService->handlePaymentSucceeded($payloadArray),
+            'checkout.session.completed'      => $this->webhookService->handleCheckoutCompleted($payloadArray),
             'customer.subscription.deleted'   => $this->webhookService->handleSubscriptionDeleted($payloadArray),
             default                           => null, // Ignore unhandled events
         };

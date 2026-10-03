@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -21,37 +21,37 @@ class SocialAuthController extends Controller
     }
 
     /**
-     * Handle Google callback.
+     * Handle Google callback, then send the browser back to the frontend,
+     * which picks up the token via AuthRedirectHandler.
      */
-    public function handleGoogleCallback(): JsonResponse
+    public function handleGoogleCallback(): RedirectResponse
     {
+        $frontend = rtrim(config('app.frontend_url'), '/');
+
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
-            
-            $user = User::updateOrCreate([
-                'email' => $googleUser->email,
-            ], [
-                'name' => $googleUser->name,
-                'password' => Hash::make(Str::random(24)),
-                'role' => UserRole::CUSTOMER, // Only for customers as per requirement
-            ]);
+
+            $user = User::where('email', $googleUser->email)->first();
+
+            // Never touch the role or password of an existing account.
+            if (!$user) {
+                $user = new User([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'password' => Str::random(40),
+                ]);
+                $user->role = UserRole::CUSTOMER;
+                $user->email_verified_at = now();
+                $user->save();
+            }
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Login successful',
-                'data' => [
-                    'user' => $user,
-                    'token' => $token,
-                ]
-            ]);
+            return redirect()->away($frontend . '/login?token=' . urlencode($token));
+        } catch (\Throwable $e) {
+            Log::warning('Google login failed', ['error' => $e->getMessage()]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Social login failed',
-            ], 422);
+            return redirect()->away($frontend . '/login?error=social_login_failed');
         }
     }
 }

@@ -6,61 +6,80 @@ use App\Jobs\SendSubscriptionReceipt;
 use App\Models\Payment;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class StripeWebhookService
 {
     /**
-     * Handles invoice.payment_succeeded event.
+     * Handles checkout.session.completed — fired when a store owner pays for a
+     * plan through PaymentController::createCheckoutSession (mode=payment).
      *
-     * All DB writes are wrapped in a DB::transaction() with 3 retries.
-     * lockForUpdate() prevents race conditions when two webhook deliveries
-     * arrive simultaneously for the same subscription.
+     * Idempotent: Stripe may deliver the same event more than once, so the
+     * unique stripe_payment_id on payments is checked under a row lock.
      */
-    public function handlePaymentSucceeded(array $payload): void
+    public function handleCheckoutCompleted(array $payload): void
     {
-        $stripeSubscriptionId = $payload['data']['object']['subscription'] ?? null;
-        $stripePaymentId      = $payload['data']['object']['payment_intent'] ?? null;
-        $amountPaid           = ($payload['data']['object']['amount_paid'] ?? 0) / 100; // Convert paise → rupees
+        $session = $payload['data']['object'] ?? [];
 
-        // Atomic transaction: all or nothing. If any step fails, everything rolls back.
-        DB::transaction(function () use ($stripeSubscriptionId, $stripePaymentId, $amountPaid) {
-            // lockForUpdate() prevents two simultaneous webhook deliveries
-            // from both reading "trialing" and both trying to activate the subscription.
-            $subscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)
-                ->lockForUpdate()
-                ->firstOrFail();
+        if (($session['payment_status'] ?? null) !== 'paid') {
+            return;
+        }
 
-            // Calculate subscription end date based on the plan duration
-            $endsAt = now()->addDays($subscription->plan->duration_days);
+        $storeId   = $session['metadata']['store_id'] ?? null;
+        $planId    = $session['metadata']['plan_id'] ?? null;
+        $paymentId = $session['payment_intent'] ?? $session['id'] ?? null;
 
-            // Step 1: Activate subscription
-            $subscription->update([
-                'status'  => 'active',
-                'ends_at' => $endsAt,
+        if (!$storeId || !$planId || !$paymentId) {
+            Log::warning('Stripe checkout session missing metadata', ['session' => $session['id'] ?? null]);
+            return;
+        }
+
+        $subscription = DB::transaction(function () use ($session, $storeId, $planId, $paymentId) {
+            $store = Store::lockForUpdate()->find($storeId);
+            $plan  = SubscriptionPlan::find($planId);
+
+            if (!$store || !$plan || Payment::where('stripe_payment_id', $paymentId)->exists()) {
+                return null;
+            }
+
+            // Extend from the current paid period if one is still running.
+            $current = $store->subscriptions()
+                ->where('status', 'active')
+                ->where('ends_at', '>', now())
+                ->latest('ends_at')
+                ->first();
+            $startsFrom = $current?->ends_at ?? now();
+
+            $subscription = Subscription::create([
+                'store_id'           => $store->id,
+                'plan_id'            => $plan->id,
+                'stripe_customer_id' => $session['customer'] ?? null,
+                'status'             => 'active',
+                'ends_at'            => $startsFrom->copy()->addDays($plan->duration_days),
             ]);
 
-            // Step 2: Create payment record
             Payment::create([
-                'store_id'         => $subscription->store_id,
-                'subscription_id'  => $subscription->id,
-                'stripe_payment_id'=> $stripePaymentId,
-                'amount'           => $amountPaid,
-                'status'           => 'success',
-                'paid_at'          => now(),
+                'store_id'          => $store->id,
+                'subscription_id'   => $subscription->id,
+                'stripe_payment_id' => $paymentId,
+                'amount'            => ($session['amount_total'] ?? 0) / 100, // paise → rupees
+                'status'            => 'success',
+                'paid_at'           => now(),
             ]);
 
-            // Step 3: Activate the store
-            Store::where('id', $subscription->store_id)->update(['status' => 'active']);
+            // Reactivate a store that was suspended for an expired trial.
+            if ($store->status === 'suspended') {
+                $store->update(['status' => 'active']);
+            }
 
-        }, 3); // Retry up to 3 times on deadlock
+            return $subscription;
+        }, 3);
 
-        // AFTER the transaction commits successfully, dispatch the email job.
-        // This is outside the transaction so a slow email job can't hold DB locks.
-        $subscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)->first();
+        // Dispatched after commit so a slow mailer can't hold DB locks.
         if ($subscription) {
-            SendSubscriptionReceipt::dispatch($subscription)->onQueue('default');
+            SendSubscriptionReceipt::dispatch($subscription);
         }
     }
 
@@ -70,6 +89,10 @@ class StripeWebhookService
     public function handleSubscriptionDeleted(array $payload): void
     {
         $stripeSubscriptionId = $payload['data']['object']['id'] ?? null;
+
+        if (!$stripeSubscriptionId) {
+            return;
+        }
 
         DB::transaction(function () use ($stripeSubscriptionId) {
             $subscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)

@@ -1,10 +1,10 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
+import { API_URL } from '@/lib/config';
+import { logout } from '@/slices/authSlice';
 import { Product } from '@/types';
 
-export const productsApi = createApi({
-  reducerPath: 'productsApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8000/api/v1',
+const rawBaseQuery = fetchBaseQuery({
+    baseUrl: `${API_URL}`,
     prepareHeaders: (headers, { getState }: any) => {
       const token = getState().auth.token;
       if (token) {
@@ -12,7 +12,20 @@ export const productsApi = createApi({
       }
       return headers;
     },
-  }),
+});
+
+// Expired or revoked token: clear the stale session so the user can sign in again.
+const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  if (result.error?.status === 401 && (api.getState() as any).auth.token) {
+    api.dispatch(logout());
+  }
+  return result;
+};
+
+export const productsApi = createApi({
+  reducerPath: 'productsApi',
+  baseQuery,
   tagTypes: ['Product', 'Order', 'Earnings', 'Store', 'Wishlist'],
   endpoints: (builder) => ({
     fetchProducts: builder.query<any, any>({
@@ -30,7 +43,7 @@ export const productsApi = createApi({
       providesTags: ['Earnings'],
     }),
     fetchDashboardProducts: builder.query<any, void>({
-      query: () => '/products', // In a real app, this would be owner-scoped
+      query: () => '/store/products',
       providesTags: ['Product'],
     }),
     fetchWishlist: builder.query<any, void>({
@@ -65,6 +78,10 @@ export const productsApi = createApi({
     }),
     fetchOrders: builder.query<any, void>({
       query: () => '/orders',
+      providesTags: ['Order'],
+    }),
+    fetchStoreOrders: builder.query<any, void>({
+      query: () => '/store/orders',
       providesTags: ['Order'],
     }),
     updateOrderStatus: builder.mutation<any, { orderId: string; status: string }>({
@@ -136,6 +153,7 @@ export const {
   useFetchDashboardProductsQuery,
   useImportProductsMutation,
   useFetchOrdersQuery,
+  useFetchStoreOrdersQuery,
   useUpdateOrderStatusMutation,
   useFetchAdminStoresQuery,
   useApproveStoreMutation,

@@ -6,8 +6,16 @@ interface AuthState {
   token: string | null;
 }
 
+function readStoredUser(): User | null {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+}
+
 const initialState: AuthState = {
-  user: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null,
+  user: typeof window !== 'undefined' ? readStoredUser() : null,
   token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
 };
 
@@ -24,6 +32,10 @@ const authSlice = createSlice({
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
     },
+    setUser: (state, { payload }: PayloadAction<User>) => {
+      state.user = payload;
+      localStorage.setItem('user', JSON.stringify(payload));
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -33,5 +45,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, setUser, logout } = authSlice.actions;
 export default authSlice.reducer;

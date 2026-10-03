@@ -17,9 +17,9 @@ class WishlistController extends Controller
         $wishlist = Wishlist::where('user_id', $request->user()->id)
             ->with('product.store')
             ->get()
-            ->map(function ($item) {
-                return $item->product;
-            });
+            ->map(fn($item) => $item->product)
+            ->filter()
+            ->values();
 
         return response()->json([
             'status' => 'success',

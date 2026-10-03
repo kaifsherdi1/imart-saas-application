@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { API_URL } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { motion } from 'framer-motion';
@@ -107,7 +108,7 @@ export default function RegisterStorePage() {
     });
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/register-owner', {
+      const response = await fetch(`${API_URL}/register-owner`, {
         method: 'POST',
         body: formPayload,
       });

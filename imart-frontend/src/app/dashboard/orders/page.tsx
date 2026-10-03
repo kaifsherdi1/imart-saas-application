@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useFetchOrdersQuery, useUpdateOrderStatusMutation } from '@/services/productsApi';
+import { useFetchStoreOrdersQuery, useUpdateOrderStatusMutation } from '@/services/productsApi';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Truck, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function MerchantOrdersPage() {
-  const { data: ordersData, isLoading } = useFetchOrdersQuery();
+  const { data: ordersData, isLoading } = useFetchStoreOrdersQuery();
   const [updateStatus] = useUpdateOrderStatusMutation();
   const orders = ordersData?.data?.data || [];
 
@@ -70,7 +70,7 @@ export default function MerchantOrdersPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-white">Order #{order.id.slice(0, 8)}</h3>
-                    <p className="text-sm text-slate-400">By {order.user?.name || 'Customer'}</p>
+                    <p className="text-sm text-slate-400">By {order.user?.name || order.customer_name || 'Customer'}</p>
                   </div>
                 </div>
 
